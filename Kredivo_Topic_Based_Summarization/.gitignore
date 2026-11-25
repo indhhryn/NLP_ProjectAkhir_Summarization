@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.py[cod]
+.cache/
+outputs/bertopic_model/
+outputs/*.csv
+outputs/*.json
+outputs/*.md
+outputs/*.txt
+!outputs/.gitkeep

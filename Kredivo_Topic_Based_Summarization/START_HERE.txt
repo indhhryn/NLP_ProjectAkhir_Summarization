@@ -1,0 +1,13 @@
+MULAI DARI SINI — KREdivo TOPIC SUMMARIZER
+
+1. Ekstrak ZIP ini ke folder biasa.
+2. Pastikan Python 3.11 atau 3.12 dan koneksi internet tersedia.
+3. Windows: klik dua kali run_windows.bat.
+   Linux/macOS: jalankan ./run_unix.sh.
+4. Pertama kali, script memasang library dan mengunduh model embedding multilingual.
+5. Setelah pipeline selesai, dashboard Streamlit terbuka di browser lokal.
+6. Untuk ROUGE yang sah, isi outputs/reference_summaries_template.csv dengan ringkasan acuan buatan manusia berdasarkan outputs/reference_examples.csv, lalu jalankan ulang:
+   python scripts/run_pipeline.py
+
+Baca README.md untuk metodologi, tahapan anotasi, evaluasi, troubleshooting, dan batasan.
+Jangan mengisi reference_summary dengan ringkasan dari model.
