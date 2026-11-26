@@ -23,5 +23,6 @@
   "stopword_removal": true,
   "save_topic_model": true,
   "audit_min_class_agreement": 0.7,
-  "audit_min_class_support": 10
+  "audit_min_class_support": 10,
+  "inference_min_similarity": 0.42
 }

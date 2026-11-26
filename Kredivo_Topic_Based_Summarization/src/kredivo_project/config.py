@@ -31,7 +31,8 @@ DEFAULT_CONFIG = {
     "audit_min_class_agreement": 0.70,
     "audit_min_class_support": 10,
     "stopword_removal": True,
-    "save_topic_model": True
+    "save_topic_model": True,
+    "inference_min_similarity": 0.42,
 }
 
 def load_config(path: Path | None = None) -> dict:

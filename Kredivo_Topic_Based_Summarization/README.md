@@ -173,7 +173,31 @@ Edit `config.json`:
 - `audit_min_agreement`: ambang agreement keseluruhan untuk label issue/severity.
 - `audit_min_class_agreement` dan `audit_min_class_support`: ambang agreement minimum dan jumlah sampel minimum per kelas.
 
+- `inference_min_similarity`: ambang *cosine similarity* minimum untuk inferensi review baru saat model dimuat dari artifact `safetensors`. Dokumen di bawah ambang ini ditandai sebagai outlier (`topic_id=-1`). Default `0.42`.
+
 Untuk menjalankan ulang dengan konfigurasi berbeda, jalankan `python scripts/run_pipeline.py`. Template acuan yang sudah diisi dipertahankan untuk topic_id yang sama, tetapi periksa ulang bila konfigurasi clustering berubah karena nomor topik dapat bergeser.
+
+## 7A. Antarmuka Web Interaktif (Streamlit Dashboard)
+
+Dashboard (`app.py`) menyediakan lima halaman utama untuk mendemonstrasikan hasil penelitian secara interaktif:
+
+1. **Overview:** Ringkasan profil dataset, pembagian train/validation/test, grafik topik dominan, jumlah outlier BERTopic, dan pratinjau ringkasan ekstraktif per topik.
+2. **Topic Explorer:** Eksplorasi per topik (`topic_id >= 0` maupun kelompok outlier `-1`), meliputi grafik bobot kata kunci c-TF-IDF, distribusi skor/sentimen CSV, ringkasan dari ketiga metode, penelusuran `reviewId` sumber untuk setiap kalimat, serta daftar ulasan dalam topik.
+3. **Analyze New Reviews:** Menjalankan alur NLP lengkap pada review baru tanpa melatih ulang BERTopic dan tanpa mengubah dataset utama:
+   - **Input Manual:** Ketik beberapa review (satu baris per review) atau tambahkan review multi-kalimat satu per satu.
+   - **Upload CSV:** Unggah CSV dengan kolom wajib **`content`**. Kolom **`reviewId`** bersifat opsional (jika tidak ada, sistem membuat ID sementara konsisten untuk sesi berjalan). Kolom tambahan seperti `score`, `at`, `sentiment`, dan `issue_category` dipertahankan bila ada tetapi tidak diwajibkan.
+   - **Alur Pemrosesan:** Validasi input → preprocessing (`normalize_text`, deteksi pujian generik) → duplicate-aware grouping → embedding & proyeksi menggunakan artifact `outputs/bertopic_model` + `paraphrase-multilingual-MiniLM-L12-v2` → penandaan outlier (`-1`) & pujian generik (`-2`) → ekstraksi keyword c-TF-IDF → multi-document extractive summarization (TF-IDF Ranking, TextRank, TextRank + MMR) jika jumlah dokumen topik mencukupi (`>= 2` dokumen unik & `>= 2` kalimat) → source traceability ke `reviewId` input.
+4. **Compare Summarization Models:** Perbandingan langsung TF-IDF Sentence Ranking, TextRank, dan TextRank + MMR pada kumpulan dokumen dan parameter (`summary_sentences`, `mmr_lambda`) yang sama persis—baik untuk topik dari dataset utama maupun hasil analisis review baru pada sesi berjalan. Menyajikan teks ringkasan, matriks perbedaan kalimat terpilih, bukti sumber, keyword coverage, redundancy, source traceability rate, waktu proses, serta status evaluasi ROUGE resmi.
+5. **Review Explorer & Data Audit:** Pencarian teks (`content`/`reviewId`) dan filter berdasarkan topik prediksi model, kata kunci, rating CSV, sentimen CSV, dan issue category CSV, lengkap dengan tombol reset filter dan panel detail review. Filter `severity_level` tetap terkunci hingga audit manual pada `outputs/label_audit_sample.csv` dinyatakan lulus.
+
+### Perbedaan Hasil Dataset Utama, Inference Review Baru, dan Evaluasi Eksperimen
+
+| Aspek | Hasil Analisis Dataset Utama | Inference Review Baru (`Analyze New Reviews`) | Evaluasi Eksperimen (`Compare` & `evaluation_comparison.csv`) |
+|---|---|---|---|
+| **Sumber Data** | `data/kredivo_reviews_50k.csv` (50.048 review valid) | Input manual atau CSV unggahan pengguna (diproses di memory session) | Subset `test` split terpin (`evaluation_doc_ids`) untuk topik evaluasi |
+| **Mekanisme Model** | Fit BERTopic pada sampel `train` split (`max_fit_docs`), lalu `transform()` ke seluruh dokumen unik informatif | Memuat artifact `outputs/bertopic_model` (`safetensors`) + `SentenceTransformer` dan memproyeksikan input baru via `transform()` tanpa retraining | Menjalankan ketiga summarizer pada subset dokumen uji yang sama persis |
+| **Fungsi Utama** | Menemukan struktur topik, kata kunci c-TF-IDF, dan ringkasan korpus penelitian | Mendemonstrasikan generalisasi model pada ulasan baru dan menelusuri buktinya | Mengukur ROUGE-1/2/L terhadap ringkasan manusia, ablation panjang, human evaluation, dan error analysis |
+| **Batasan Penting** | Tidak memakai label CSV sebagai ground truth | Artifact `safetensors` tidak menyimpan UMAP/HDBSCAN sehingga proyeksi memakai *cosine similarity* ke embedding topik + ambang `inference_min_similarity` | ROUGE tidak dihitung sebelum `reference_summary` diisi oleh manusia |
 
 ## 8. Catatan metodologis dan keterbatasan
 
@@ -224,9 +248,17 @@ Kredivo_Topic_Based_Summarization/
 │   ├── summarization.py
 │   ├── audit.py
 │   ├── evaluation.py
+│   ├── inference.py
+│   ├── explorer.py
 │   └── pipeline.py
 ├── scripts/run_pipeline.py
 ├── tests/
+│   ├── test_audit.py
+│   ├── test_interactive_features.py
+│   ├── test_pipeline_smoke.py
+│   ├── test_preprocessing.py
+│   ├── test_summarization.py
+│   └── test_topics_integration.py
 ├── docs/
 │   ├── ANNOTATION_GUIDE.md
 │   ├── COURSE_ALIGNMENT.md
